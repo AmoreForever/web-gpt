@@ -246,7 +246,12 @@ async def stream_generate(prompt: str, mode: optionsSets.optionSet = optionsSets
             response = json.loads(obj)
             if response.get('type') == 1 and response['arguments'][0].get('messages',):
                 if not draw:
-                    if (response['arguments'][0]['messages'][0]['contentOrigin'] != 'Apology') and not draw:
+                    if (
+                        response['arguments'][0]['messages'][0][
+                            'contentOrigin'
+                        ]
+                        != 'Apology'
+                    ):
                         resp_txt = result_text + \
                             response['arguments'][0]['messages'][0]['adaptiveCards'][0]['body'][0].get(
                                 'text', '')
@@ -272,7 +277,7 @@ async def stream_generate(prompt: str, mode: optionsSets.optionSet = optionsSets
                             await wss.close()
                         if session and not session.closed:
                             await session.close()
-                            
+
                     yield (resp_txt.replace(cache_text, ''))
                     cache_text = resp_txt
 
@@ -305,27 +310,22 @@ async def stream_generate(prompt: str, mode: optionsSets.optionSet = optionsSets
 
 
 def run(generator):  
-    loop = asyncio.new_event_loop()  
-    asyncio.set_event_loop(loop)  
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     gen = generator.__aiter__()  
 
     while True:  
         try:  
-            next_val = loop.run_until_complete(gen.__anext__())  
-            yield next_val  
-
+            yield loop.run_until_complete(gen.__anext__())
         except StopAsyncIteration:  
             break  
     #print('Done')  
 
 def convert(messages):
-    context = ""
-
-    for message in messages:
-        context += "[%s](#message)\n%s\n\n" % (message['role'],
-                                               message['content'])
-
-    return context
+    return "".join(
+        "[%s](#message)\n%s\n\n" % (message['role'], message['content'])
+        for message in messages
+    )
 
 
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
@@ -337,9 +337,7 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
         prompt = messages[-1]['content']
         context = convert(messages[:-1])
 
-    response = run(stream_generate(prompt, optionsSets.jailbreak, context))
-    for token in response:
-        yield (token)
+    yield from run(stream_generate(prompt, optionsSets.jailbreak, context))
 
     #print('Done')
 

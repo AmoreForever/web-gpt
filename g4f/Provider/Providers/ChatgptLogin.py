@@ -17,10 +17,13 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
             "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
         })
 
-        src = re.search(r'class="mwai-chat mwai-chatgpt">.*<span>Send</span></button></div></div></div> <script defer src="(.*?)">', res.text).group(1)
+        src = re.search(
+            r'class="mwai-chat mwai-chatgpt">.*<span>Send</span></button></div></div></div> <script defer src="(.*?)">',
+            res.text,
+        )[1]
         decoded_string = base64.b64decode(src.split(",")[-1]).decode('utf-8')
-        return re.search(r"let restNonce = '(.*?)';", decoded_string).group(1)
-    
+        return re.search(r"let restNonce = '(.*?)';", decoded_string)[1]
+
     def transform(messages: list) -> list:
         def html_encode(string: str) -> str:
             table = {
@@ -33,19 +36,19 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
                 '\t': '&nbsp;&nbsp;&nbsp;&nbsp;',
                 ' ': '&nbsp;'
             }
-            
+
             for key in table:
                 string = string.replace(key, table[key])
-                
+
             return string
-        
+
         return [{
             'id': os.urandom(6).hex(),
             'role': message['role'],
             'content': message['content'],
             'who': 'AI: ' if message['role'] == 'assistant' else 'User: ',
             'html': html_encode(message['content'])} for message in messages]
-    
+
     headers = {
         'authority': 'chatgptlogin.ac',
         'accept': '*/*',
@@ -62,7 +65,7 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
         'x-wp-nonce': get_nonce()
     }
-    
+
     conversation = transform(messages)
 
     json_data = {
@@ -87,7 +90,7 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
 
     response = requests.post('https://chatgptlogin.ac/wp-json/ai-chatbot/v1/chat', 
                              headers=headers, json=json_data)
-    
+
     return response.json()['reply']
 
 
