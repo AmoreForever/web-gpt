@@ -25,11 +25,8 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
             os.system('clear' if os.name == 'posix' else 'cls')
             yield 'Clouflare error, please try again...'
             os._exit(0)
-        
-        else:
-            if b'ping - 2023-' in line:
-                continue
-            
+
+        elif b'ping - 2023-' not in line:
             yield line.decode('cp1251') #[:-1]
             
 params = f'g4f.Providers.{os.path.basename(__file__)[:-3]} supports: ' + \
